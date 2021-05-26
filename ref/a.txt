@@ -1,0 +1,17 @@
+r  .  r  b  r
+.  b  .  b  r
+r  .  r  r  .
+b  b  r  r  b
+b  .  .  .  .
+7 / 9
+
+
+
+
+
+r  .  r  b  r
+.  .  .  b  r
+b  b  b  r  .
+b  b  r  r  b
+b  .  .  .  .
+9 / 7
