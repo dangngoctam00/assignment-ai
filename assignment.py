@@ -5,26 +5,20 @@ import time
 SIZE = 5
 PLAYER_MAX = 1
 PLAYER_MIN = -1
-EMPTY = '.'
-TIMELIMIT = 1
+EMPTY = 0
+TIMELIMIT = 10000000
 INF = math.inf
 
 
 
 
 class Board:
-    def __init__(self):
-        self.board = list()
+    def __init__(self, state = []):
         self.nums_max = 0
-        self.nums_min = 0
-
-
-    def initialize_board(self):
-        self.board = [['1','1','1','1','1'],
-                      ['1','0','0','0','1'],
-                      ['1','0','0','0','-1'],
-                      ['-1','0','0','0','-1'],
-                      ['-1','-1','-1','-1','-1']]
+        self.nums_min = 0   
+        self.board = list()
+        if len(state) > 0:
+            self.createBoard(state)        
        
 
     def createBoard(self, state):
@@ -48,19 +42,59 @@ class Board:
             return INF
         return self.nums_max - self.nums_min
 
-    def get_all_available_move(self, board, player):
-        available_move = list()
-        for i in range(SIZE*SIZE):
-            if self.board[i] == player:
-                lst = list()
-                if i%2 == 0:
-                    lst = [i-6, i-5, i-4, i-1, i+1, i+4, i+5, i+6]
-                else:
-                    lst = [i-5, i-1, i+1, i+5]
-                for x in lst:
-                    if self.isValidTargetPosition(i, x):
-                        available_move.append((i, x))
-        return available_move
+    def get_all_available_move(self, player, opponent):
+        opponent_start = opponent[0]
+        opponent_end = opponent[1]
+        if opponent_start != opponent_end and PreviousBoard.board.nums_max == self.nums_max \
+                 and PreviousBoard.board.nums_min == self.nums_min:
+
+            available_move = list()
+            trap_list = list()
+            isTrap = False
+            for i in range(SIZE*SIZE):
+                if self.board[i] == player:
+                    adjacency_list = None
+                    if i % 2 == 0:
+                        adjacency_list = [i + 6, i - 6, i + 5, i - 5, i + 4, i - 4, i + 1, i - 1]
+                    else:
+                        adjacency_list = [i + 5, i - 5, i + 1, i - 1]
+                    
+                    for adjacency_node in adjacency_list:
+                        if self.isValidTargetPosition(i, adjacency_node):
+                            if adjacency_node == opponent_start:
+                                symmetric_pair_list = None
+                                if adjacency_node % 2 == 0:
+                                    symmetric_pair_list = [(adjacency_node - 6, adjacency_node + 6), (adjacency_node - 5, adjacency_node + 5), (adjacency_node - 4, adjacency_node + 4), (adjacency_node - 1, adjacency_node + 1)]
+                                else:
+                                    symmetric_pair_list = [(adjacency_node - 5, adjacency_node + 5), (adjacency_node - 1, adjacency_node + 1)]
+                                for symmetric_pair in symmetric_pair_list:
+                                    if Board.isAdjacentAndValid(adjacency_node, symmetric_pair[0]) and Board.isAdjacentAndValid(adjacency_node, symmetric_pair[1]):
+                                        if not self.board[symmetric_pair[0]] in [self.board[i], 0] and not self.board[symmetric_pair[1]] in [self.board[i], 0]:
+                                            if PreviousBoard.board.board[symmetric_pair[0]] == 0 or PreviousBoard.board.board[symmetric_pair[1]] == 0 or PreviousBoard.board.board[adjacency_node] != 0:
+                                                isTrap = True
+                                                trap_list.append((i, adjacency_node))
+                                                break                                       
+                            
+                            available_move.append((i, adjacency_node))
+
+            if isTrap:
+                trap_list = list(filter(lambda move: move[1] == opponent_start, trap_list))
+                print("trap_list: ", trap_list)
+                return trap_list
+            return available_move
+        else:
+            available_move = list()
+            for i in range(SIZE*SIZE):
+                if self.board[i] == player:
+                    lst = list()
+                    if i%2 == 0:
+                        lst = [i-6, i-5, i-4, i-1, i+1, i+4, i+5, i+6]
+                    else:
+                        lst = [i-5, i-1, i+1, i+5]
+                    for x in lst:
+                        if self.isValidTargetPosition(i, x):
+                            available_move.append((i, x))
+            return available_move
 
     
     def makeMove(self, move, player):
@@ -108,6 +142,7 @@ class Board:
                 khi = 0 #khi cua 1 quan co
                 team_list = list()
                 mark_list = [0]*25
+                mark_list[i] = 1
                 for x in movable:                   
                     if self.board[x] != 0:
                         if self.board[x] == self.board[i]:
@@ -180,93 +215,139 @@ class Board:
         return new_board
             
 
+class PreviousBoard:
+    board = Board([[1,1,1,1,1], 
+                        [1,0,0,0,1], 
+                        [1,0,0,0,-1], 
+                        [-1,0,0,0,-1], 
+                        [-1,-1,-1,-1,-1]])    
+
+    
+def makeMoveForPreviousBoard(state, move, player):
+    PreviousBoard.board = Board()
+    PreviousBoard.board.createBoard(state)    
+    PreviousBoard.board.makeMove(move, player)
+
+
+
+def move(board, player):
+    ai = AI()
+    custom_board = Board()
+    custom_board.createBoard(board)
+    opponent = opponent_move(custom_board)
+    move = ai.minimax_search(custom_board, player, opponent)
+    board_print(board)
+    if not move:
+        return move
+    makeMoveForPreviousBoard(board, move, player)
+    board_print_from_array(PreviousBoard.board.board)
+    # print("Move: ", move)
+    move = ((int(move[0]/5), move[0]%5), (int(move[1]/5), move[1]%5))
+    return move
+
+def opponent_move(board):
+    start = -1
+    end = -1
+    for i in range(SIZE*SIZE):
+        if board.board[i] != PreviousBoard.board.board[i]:
+            if PreviousBoard.board.board[i] != 0 and board.board[i] == 0:
+                start = i
+            if PreviousBoard.board.board[i] == 0 and board.board[i] != 0:
+                end = i
+    # print('start: {} -> end: {}'.format(vi_tri_dau, vi_tri_sau))
+    return (start, end)
+
 
 class AI:
     def __init__(self):
         self.timeStart = time.time()
         self.timeExceeded = False
 
-    def minimax_search(self, board, player):
+    def minimax_search(self, board, player, opponent):
         alpha = -INF
         beta = INF
-        depth = 4
-        if (player == PLAYER_MAX):
-            (value, move) = self.max_alpha_beta(depth, alpha, beta, board, player)
-            return move
-        elif (player == PLAYER_MIN):
-            (value, move) = self.min_alpha_beta(depth, alpha, beta, board, player)
-            return move
-
-    def max_alpha_beta(self, depth, alpha, beta, board: Board, player):
-        if (depth == 0 or self.timeOut()):
-            return (board.static_evaluation(), (0, 0))
-        moveable_list = board.get_all_available_move(board, player)   # (start, end)
-        if len(moveable_list) == 0:            
-            return (-INF, None)                
-        max_value = -INF
+        depth = 1
         best_move = list()
+        moveable_list = board.get_all_available_move(player, opponent)
+        if len(moveable_list) == 0:
+            return None
+        if len(moveable_list) == 1:
+            return moveable_list[0]
+        
+
+        while not self.timeOut():
+            for move in moveable_list:
+                new_board = board.copyBoard()
+                new_board.makeMove(move, player)
+                value = self.min_alpha_beta(depth - 1, alpha, beta, new_board, player, move)
+                if value >= alpha:
+                    alpha = value
+                    best_move.append((move, alpha))
+                if self.timeOut():
+                    break
+            depth += 1
+        best_move = list(filter(lambda x: x[1] == alpha, best_move)) 
+        best_move = list(map(lambda x: x[0], best_move))
+        if len(best_move) == 1:
+            return best_move[0]
+        else:
+            return best_move[random.randint(0, len(best_move) - 1)]
+
+
+
+    def max_alpha_beta(self, depth, alpha, beta, board: Board, player, opponent):
+        if (depth == 0 or self.timeOut()):
+            return board.static_evaluation()
+        moveable_list = board.get_all_available_move(player, opponent)   # (start, end)
+        if len(moveable_list) == 0:            
+            return -INF           
+        max_value = -INF
         for move in moveable_list:
             new_board = board.copyBoard()
             new_board.makeMove(move, player)
             # print('Max:\n')
             # board_print_from_array(new_board.board)
-            (value, m) = self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player))         
+            max_value = max(max_value, self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move))         
             # if value == None:
             #     return (value, value)
-            # print('Value: ', value, '\n')
-            if value >= max_value:
-                max_value = value
-                best_move.append((move, max_value))
-            
+            # print('Value: ', value, '\n')           
             if max_value >= beta:
-                break
-            if max_value > alpha:
-                alpha = max_value
+                return max_value 
 
-        best_move = list(filter(lambda x: x[1] == max_value, best_move)) 
-        best_move = list(map(lambda x: x[0], best_move))
-        if len(best_move) == 1:
-            return (max_value, best_move[0])
-        else:
-            return (max_value, best_move[random.randint(0, len(best_move) - 1)])           
+            alpha = max(alpha, max_value)          
+            if self.timeOut():
+                break
+        return max_value
 
   
             
 
-    def min_alpha_beta(self, depth, alpha, beta, board: Board, player):
+    def min_alpha_beta(self, depth, alpha, beta, board: Board, player, opponent):
         if depth == 0 or self.timeOut():            
-            return (board.static_evaluation(), (0, 0))
-        moveable_list = board.get_all_available_move(board, player)   # (start, end)
+            return board.static_evaluation()
+        moveable_list = board.get_all_available_move(player, opponent)   # (start, end)
         if len(moveable_list) == 0:
-            return (INF, None)        
+            return INF      
         min_value = INF
-        best_move = list()
         for move in moveable_list:
             new_board = board.copyBoard()
             new_board.makeMove(move, player)
             # print('Min: \n')
-            (value, m) = self.max_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player)) 
+            min_value = min(min_value, self.max_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move))
             # if value == None:
             #     return (value, value)
             # board_print_from_array(new_board.board)
-            # print('Value: ', value, '\n')
-
-            if value <= min_value:
-                min_value = value
-                best_move.append((move, min_value))
+            # print('Value: ', value, '\n')            
             
             if min_value <= alpha:
-                break
-            if min_value < beta:
-                beta = min_value
+                return min_value  
+            
+            beta = min(min_value, beta)
 
-        best_move = list(filter(lambda x: x[1] == min_value, best_move))  
-        best_move = list(map(lambda x: x[0], best_move)) 
-        if len(best_move) == 1:
-            return (min_value, best_move[0])
-        else:
-            return (min_value, best_move[random.randint(0, len(best_move) - 1)])    
+            if self.timeOut():
+                break  
 
+        return min_value
     def timeOut(self):
         if time.time() - self.timeStart >= TIMELIMIT:
             self.timeExceeded = True
@@ -277,19 +358,6 @@ class AI:
     def changePlayer(player):
         return PLAYER_MAX if player == -1 else PLAYER_MIN
 
-
-def board_print(board, move=[], num=0):
-
-    print("====== The current board(", num, ")is (after move): ======")
-    if move:
-        print("move = ", move)
-    for i in [4, 3, 2, 1, 0]:
-        print(i, ":", end=" ")
-        for j in range(5):
-            print(convert(board[i][j]), end=" ")
-        print()
-    print("   ", 0, 1, 2, 3, 4)
-    print("")
 
 
 
@@ -305,16 +373,6 @@ def convert(x):
 
 
 
-def move(board, player):
-    ai = AI()
-    custom_board = Board()
-    custom_board.createBoard(board)
-    move = ai.minimax_search(custom_board, player)
-    if not move:
-        return move
-    print("Move: ", move)
-    move = [(int(move[0]/5), move[0]%5), (int(move[1]/5), move[1]%5)]
-    return move
 
 def process_after_move(move, board, player):
     custom_board = Board()
@@ -393,11 +451,28 @@ def process_after_move(move, board, player):
                     elif player == PLAYER_MIN:
                         custom_board.nums_max = custom_board.nums_max - len(team_list) - 1
                         custom_board.nums_min = custom_board.nums_min + len(team_list) + 1        
+    
+    n_board = [[0,0,0,0,0], [0,0,0,0,0], [0,0,0,0,0], [0,0,0,0,0], [0,0,0,0,0]]
     for i in range(5):
         for j in range(5):
-            board[i][j] = custom_board.board[i*5+j]
+            n_board[i][j] = custom_board.board[i*5+j]
 
-    return board 
+    return n_board
+
+
+
+def board_print(board, move=[], num=0):
+
+    print("====== The current board(", num, ")is (after move): ======")
+    if move:
+        print("move = ", move)
+    for i in [4, 3, 2, 1, 0]:
+        print(i, ":", end=" ")
+        for j in range(5):
+            print(convert(board[i][j]), end=" ")
+        print()
+    print("   ", 0, 1, 2, 3, 4)
+    print("")
 
 
 def play(board):    
@@ -423,9 +498,9 @@ def play(board):
 
         print("The move is : ", move_value, end=" ")
         print(" (in %.2f ms)" % (elapse*1000), end=" ")
-        if elapse > 3.0:
-            print(" ** took more than three second!!", end=" ")
-            break
+        # if elapse > 3.0:
+        #     print(" ** took more than three second!!", end=" ")
+        #     break
         print()
         # check_move
         state = process_after_move(move_value, state, curr_player)

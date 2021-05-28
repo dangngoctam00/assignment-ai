@@ -6,10 +6,19 @@ SIZE = 5
 PLAYERA = 'b'
 PLAYERB = 'r'
 EMPTY = '.'
-TIMELIMIT = 0.05
+TIMELIMIT = 1000
 INF = math.inf
 
 # ======================== Class Player =======================================
+
+def board_print_from_array(board):    
+    for i in [0, 1, 2, 3, 4]:
+        print('{}  {}  {}  {}  {}'.format(convert(board[i*5]), convert(board[i*5 + 1]) ,convert(board[i*5 + 2]), convert(board[i*5 + 3]), convert(board[i*5 + 4])))
+
+
+def convert(x):
+    return 'b' if (x == 1) else 'r' if (x == -1) else '.'
+
 class Player:
     # student do not allow to change two first functions
     def __init__(self, str_name):
@@ -71,8 +80,8 @@ class Board:
             for j in range(SIZE):
                 cur_player = state[i][j]
                 if cur_player == PLAYERA:
-                    self.board.append(1)
-                elif cur_player == PLAYERB:
+                    self.board.append(1) #b
+                elif cur_player == PLAYERB: #r
                     self.board.append(-1)
                 else:
                     self.board.append(0)
@@ -142,10 +151,18 @@ class Board:
                             availableMove.append((i, x))
                     if bay1 is True:
                         isBay = True
-            if isBay:
+            if isBay:                
+                print("Bay: ", player , ': ', listBayAvailable, '\n')
+                print("Preboard: \n")
+                board_print_from_array(preBoard.board)
+                print("Board:\n")
+                board_print_from_array(self.board)
+
                 return listBayAvailable
+            print("Not trap and if statement: ", availableMove)
             return availableMove
-        else:            
+        else:    
+            
             availableMove = list()
             for i in range(SIZE*SIZE):
                 if self.board[i] == player:
@@ -157,6 +174,7 @@ class Board:
                     for x in lst:
                         if self.dKienMove(i, x):
                             availableMove.append((i, x))
+            print("not trap and else statement: ", availableMove)       
             return availableMove
 
     # Thuc hien buoc chuyen move tren trang thai board
@@ -311,6 +329,8 @@ class AI:
     def min_value(self, board, playerId, alpha, beta, dt, depth, preBoard):
         if depth == 0 or self.timeOut():
             return board.staticEval(otherPlayer(playerId))
+        
+        print("Min, depth = ", depth, 'move of opponent: ', dt)
         value = INF
         moves = board.getAvailableMoves(dt, playerId, preBoard)
         for i in range(len(moves)):
@@ -318,15 +338,18 @@ class AI:
             new_board.makeMove(moves[i], playerId)
             value = min(value, self.max_value(new_board, otherPlayer(playerId), alpha, beta , moves[i], depth - 1, board))
             if value <= alpha:
+                print("value in min function when compare alpha: ", value , ', alpha = ', alpha, ', beta = ', beta)
                 return value
             beta = min(beta, value)
             if self.timeOut():
                 break
+        print("value after min function: ", value)
         return value
 
     def max_value(self, board, playerId, alpha, beta, dt, depth, preBoard):
         if depth == 0 or self.timeOut():
             return board.staticEval(otherPlayer(playerId))
+        print("Max, depth = ", depth, 'move of opponent: ', dt, '\n')
         value = -INF
         moves = board.getAvailableMoves(dt, playerId, preBoard)
         for i in range(len(moves)):
