@@ -1,5 +1,21 @@
-. . . . r
-r b b b .
-r r r b .
-r r . r r
-r r b . .
+b  .  .  .  .
+b  b  .  r  .
+b  b  b  b  r
+b  b  .  b  b
+.  .  b  b  b
+abc
+trap_list:  [(12, 8), (13, 8)]
+====== The current board( 0 )is (after move): ======
+4 : . . b b b 
+3 : b b . b b 
+2 : b b b b r 
+1 : b b . . . 
+0 : b . r . . 
+    0 1 2 3 4
+
+b  .  b  .  .
+b  b  .  b  .
+b  b  .  b  b
+b  b  .  b  b
+.  .  b  b  b
+((2, 2), (1, 3))
