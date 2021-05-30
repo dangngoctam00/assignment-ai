@@ -1,13 +1,15 @@
+#co the viet them cac ham, bien khac
+
 import math
-import random
 import time
+import random
 
 SIZE = 5
 PLAYER_MAX = 1
 PLAYER_MIN = -1
 EMPTY = 0
-TIMELIMIT = 0.05
-INF = 20
+TIMELIMIT = 0.01
+INF = 50
 
 
 
@@ -22,6 +24,9 @@ class Board:
        
 
     def createBoard(self, state):
+        self.nums_max = 0
+        self.nums_min = 0
+        self.board = list()
         for i in range(SIZE):
             for j in range(SIZE):
                 cur_player = state[i][j]
@@ -42,11 +47,11 @@ class Board:
             return INF
         return self.nums_max - self.nums_min
 
-    def get_all_available_move(self, player, opponent):
+    def get_all_available_move(self, player, opponent, previousBoard):
         opponent_start = opponent[0]
         opponent_end = opponent[1]
-        if opponent_start != opponent_end and PreviousBoard.board.nums_max == self.nums_max \
-                 and PreviousBoard.board.nums_min == self.nums_min:
+        if opponent_start != opponent_end and previousBoard.nums_max == self.nums_max \
+                 and previousBoard.nums_min == self.nums_min:
 
             available_move = list()
             trap_list = list()
@@ -61,26 +66,27 @@ class Board:
                     
                     for adjacency_node in adjacency_list:
                         if self.isValidTargetPosition(i, adjacency_node):
-                            symmetric_pair_list = None
-                            if adjacency_node % 2 == 0:
-                                symmetric_pair_list = [(adjacency_node - 6, adjacency_node + 6), (adjacency_node - 5, adjacency_node + 5), (adjacency_node - 4, adjacency_node + 4), (adjacency_node - 1, adjacency_node + 1)]
-                            else:
-                                symmetric_pair_list = [(adjacency_node - 5, adjacency_node + 5), (adjacency_node - 1, adjacency_node + 1)]
-                            for symmetric_pair in symmetric_pair_list:
-                                if Board.isAdjacentAndValid(adjacency_node, symmetric_pair[0]) and Board.isAdjacentAndValid(adjacency_node, symmetric_pair[1]):
-                                    if not self.board[symmetric_pair[0]] in [self.board[i], 0] and not self.board[symmetric_pair[1]] in [self.board[i], 0]:
-                                        if PreviousBoard.board.board[symmetric_pair[0]] in [PreviousBoard.board.board[i] , 0] or PreviousBoard.board.board[symmetric_pair[1]] in [PreviousBoard.board.board[i] , 0] or PreviousBoard.board.board[adjacency_node] != 0:
-                                            isTrap = True
-                                            trap_list.append((i, adjacency_node))
-                                            break                                       
-                            
+                            if adjacency_node == opponent_start:
+                                symmetric_pair_list = None
+                                if adjacency_node % 2 == 0:
+                                    symmetric_pair_list = [(adjacency_node - 6, adjacency_node + 6), (adjacency_node - 5, adjacency_node + 5), (adjacency_node - 4, adjacency_node + 4), (adjacency_node - 1, adjacency_node + 1)]
+                                else:
+                                    symmetric_pair_list = [(adjacency_node - 5, adjacency_node + 5), (adjacency_node - 1, adjacency_node + 1)]
+                                for symmetric_pair in symmetric_pair_list:
+                                    if Board.isAdjacentAndValid(adjacency_node, symmetric_pair[0]) and Board.isAdjacentAndValid(adjacency_node, symmetric_pair[1]):
+                                        if not self.board[symmetric_pair[0]] in [self.board[i], 0] and not self.board[symmetric_pair[1]] in [self.board[i], 0]:
+                                            if previousBoard.board[symmetric_pair[0]] in [previousBoard.board[i] , 0] or previousBoard.board[symmetric_pair[1]] in [previousBoard.board[i] , 0] or previousBoard.board[adjacency_node] != 0:
+                                                isTrap = True
+                                                trap_list.append((i, adjacency_node))
+                                                break                                       
+                                
                             available_move.append((i, adjacency_node))
 
             if isTrap:
-                trap_list = list(filter(lambda move: move[1] == opponent_start, trap_list))
-                print("trap_list: ", trap_list)
+                #trap_list = list(filter(lambda move: move[1] == opponent_start, trap_list))
+                #print("trap_list: ", trap_list)
                 return trap_list
-            print("not trap if: ", available_move)
+            #print("not trap if: ", available_move)
             return available_move
         else:
             available_move = list()
@@ -94,7 +100,7 @@ class Board:
                     for x in lst:
                         if self.isValidTargetPosition(i, x):
                             available_move.append((i, x))
-            print("not trap else: ", available_move)
+            #print("not trap else: ", available_move)
             return available_move
 
     
@@ -126,8 +132,6 @@ class Board:
                     else:
                         self.nums_max -= 2
                         self.nums_min += 2
-        
-        board_print_from_array(self.board)
         
         ## Vay
         for i in range(SIZE*SIZE):
@@ -169,7 +173,6 @@ class Board:
                 else:
                     total_khi = self.calculate_for_teammate(team_list, mark_list)
                     if total_khi == 0:
-                        print("abc: ", i)
                         self.board[i] = self.board[end]
                         for t in team_list:
                             self.board[t] = self.board[end]
@@ -237,20 +240,32 @@ def makeMoveForPreviousBoard(state, move, player):
     PreviousBoard.board.makeMove(move, player)
 
 
+def board_print(board, move=[]):
+
+    print("====== The current board is (after move): ======")
+    if move:
+        print("move = ", move)
+    for i in range(5):
+        for j in range(5):
+            print(convert(board[i][j]), end=" ")
+        print()
+    print("")
 
 def move(board, player):
     ai = AI()
     custom_board = Board()
     custom_board.createBoard(board)
     opponent = opponent_move(custom_board)
+    #board_print(board)
+    #print('OPPONENT: ', opponent, ', PLAYER: ', player)
     move = ai.minimax_search(custom_board, player, opponent)
-    board_print(board)
+  
     if not move:
         return move
     makeMoveForPreviousBoard(board, move, player)
-    board_print_from_array(PreviousBoard.board.board)
-    # print("Move: ", move)
     move = ((int(move[0]/5), move[0]%5), (int(move[1]/5), move[1]%5))
+    #print("Move: ", move)
+    #board_print_from_array(PreviousBoard.board.board)
     return move
 
 def opponent_move(board):
@@ -276,7 +291,7 @@ class AI:
         beta = INF
         depth = 1
         best_move = list()
-        moveable_list = board.get_all_available_move(player, opponent)
+        moveable_list = board.get_all_available_move(player, opponent, PreviousBoard.board)
         if len(moveable_list) == 0:
             return None
         if len(moveable_list) == 1:
@@ -287,7 +302,7 @@ class AI:
             for move in moveable_list:
                 new_board = board.copyBoard()
                 new_board.makeMove(move, player)
-                value = self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move)
+                value = self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move, board)
                 if value >= alpha:
                     alpha = value
                     best_move.append((move, alpha))
@@ -303,10 +318,10 @@ class AI:
 
 
 
-    def max_alpha_beta(self, depth, alpha, beta, board: Board, player, opponent):
+    def max_alpha_beta(self, depth, alpha, beta, board: Board, player, opponent, previousBoard):
         if (depth == 0 or self.timeOut()):
             return board.static_evaluation()
-        moveable_list = board.get_all_available_move(player, opponent)   # (start, end)
+        moveable_list = board.get_all_available_move(player, opponent, previousBoard)   # (start, end)
         if len(moveable_list) == 0:            
             return -INF           
         max_value = -INF
@@ -315,7 +330,7 @@ class AI:
             new_board.makeMove(move, player)
             # print('Max:\n')
             # board_print_from_array(new_board.board)
-            max_value = max(max_value, self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move))         
+            max_value = max(max_value, self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move, board))         
             # if value == None:
             #     return (value, value)
             # print('Value: ', value, '\n')           
@@ -330,10 +345,10 @@ class AI:
   
             
 
-    def min_alpha_beta(self, depth, alpha, beta, board: Board, player, opponent):
+    def min_alpha_beta(self, depth, alpha, beta, board: Board, player, opponent, previousBoard: Board):
         if depth == 0 or self.timeOut():            
             return board.static_evaluation()
-        moveable_list = board.get_all_available_move(player, opponent)   # (start, end)
+        moveable_list = board.get_all_available_move(player, opponent, previousBoard)   # (start, end)
         if len(moveable_list) == 0:
             return INF      
         min_value = INF
@@ -341,7 +356,7 @@ class AI:
             new_board = board.copyBoard()
             new_board.makeMove(move, player)
             # print('Min: \n')
-            min_value = min(min_value, self.max_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move))
+            min_value = min(min_value, self.max_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move, board))
             # if value == None:
             #     return (value, value)
             # board_print_from_array(new_board.board)
@@ -354,8 +369,9 @@ class AI:
 
             if self.timeOut():
                 break  
-
         return min_value
+        
+        
     def timeOut(self):
         if time.time() - self.timeStart >= TIMELIMIT:
             self.timeExceeded = True
@@ -436,7 +452,7 @@ def process_after_move(move, board, player):
                         mark_list[x] = 1                        
                     continue
                 else:                         
-                    khi += 1               
+                    khi += 1
             if khi != 0:
                 continue
             if teammates == 0 and khi == 0:
@@ -466,21 +482,6 @@ def process_after_move(move, board, player):
             n_board[i][j] = custom_board.board[i*5+j]
 
     return n_board
-
-
-
-def board_print(board, move=[], num=0):
-
-    print("====== The current board(", num, ")is (after move): ======")
-    if move:
-        print("move = ", move)
-    for i in [4, 3, 2, 1, 0]:
-        print(i, ":", end=" ")
-        for j in range(5):
-            print(convert(board[i][j]), end=" ")
-        print()
-    print("   ", 0, 1, 2, 3, 4)
-    print("")
 
 
 def play(board):    
