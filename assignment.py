@@ -1,14 +1,13 @@
 #co the viet them cac ham, bien khac
 
 import math
-import time
-import random
+
 
 SIZE = 5
 PLAYER_MAX = 1
 PLAYER_MIN = -1
 EMPTY = 0
-TIMELIMIT = 0.01
+TIMELIMIT = 2
 INF = 50
 
 
@@ -289,7 +288,7 @@ class AI:
     def minimax_search(self, board, player, opponent):
         alpha = -INF
         beta = INF
-        depth = 1
+        
         best_move = list()
         moveable_list = board.get_all_available_move(player, opponent, PreviousBoard.board)
         if len(moveable_list) == 0:
@@ -297,18 +296,18 @@ class AI:
         if len(moveable_list) == 1:
             return moveable_list[0]
         
+        depth = 3
 
-        while not self.timeOut():
-            for move in moveable_list:
-                new_board = board.copyBoard()
-                new_board.makeMove(move, player)
-                value = self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move, board)
-                if value >= alpha:
-                    alpha = value
-                    best_move.append((move, alpha))
-                if self.timeOut():
-                    break
-            depth += 1
+        for move in moveable_list:
+            new_board = board.copyBoard()
+            new_board.makeMove(move, player)
+            value = self.min_alpha_beta(depth - 1, alpha, beta, new_board, AI.changePlayer(player), move, board)
+            if value >= alpha:
+                alpha = value
+                best_move.append((move, alpha))
+            if self.timeOut():
+                break
+            
         best_move = list(filter(lambda x: x[1] == alpha, best_move)) 
         best_move = list(map(lambda x: x[0], best_move))
         if len(best_move) == 1:
@@ -482,55 +481,3 @@ def process_after_move(move, board, player):
             n_board[i][j] = custom_board.board[i*5+j]
 
     return n_board
-
-
-def play(board):    
-    curr_player = 1 # MAX
-    state = board    
-
-    board_num = 0
-        
-    board_print(state)
-    
-    while True:
-        print("It is ", curr_player, "'s turn")
-
-        start = time.time()
-        move_value = move(state, curr_player)
-        # move = [(4, 2), (3, 2)]
-        elapse = time.time() - start
-
-        # print(move)
-
-        if not move_value:
-            break
-
-        print("The move is : ", move_value, end=" ")
-        print(" (in %.2f ms)" % (elapse*1000), end=" ")
-        # if elapse > 3.0:
-        #     print(" ** took more than three second!!", end=" ")
-        #     break
-        print()
-        # check_move
-        state = process_after_move(move_value, state, curr_player)
-
-        board_num += 1
-        board_print(state, num=board_num)
-
-        if curr_player == 1:
-            curr_player = -1
-        else:
-            curr_player = 1
-
-    print("Game Over")
-    if curr_player == -1:
-        print("The Winner is:", 'PLAYER_MAX - blue')
-    else:
-        print("The Winner is:", 'PLAYER_MIN - red')
-
-board = [[1,1,1,1,1],
-        [1,0,0,0,1],
-        [-1,0,0,0,1],
-        [-1,0,0,0,-1],
-        [-1,-1,-1,-1,-1]]
-play(board)
